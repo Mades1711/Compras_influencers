@@ -75,7 +75,8 @@ def Connect():
       host=config('host'), 
       database=config('database'),
       user=config('user'), 
-      password=config('password')
+      password=config('password'),
+      charset = 'WIN1252'
     )
   return conn
 
