@@ -113,10 +113,12 @@ def run():
             
         with st.sidebar:
             user = st.text_input('Insira seu usuário', value= None)
+            senha = st.text_input('Insira a senha', value= None)
             validar_login = st.button('Login')
             lista_user = ['jardisson', 'melias', 'tiadmin']
+            senha_p = 'Dinizfinan'
             if validar_login:
-                if user in lista_user:
+                if user in lista_user and senha in senha_p:
 
                     new_inf = st.text_input('Insira o CPF do Influencer', value= None)
                     col1, col2 = st.columns(2)
