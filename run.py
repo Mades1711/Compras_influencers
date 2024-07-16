@@ -114,142 +114,146 @@ def run():
         with st.sidebar:
             user = st.text_input('Insira seu usuário', value= None)
             senha = st.text_input('Insira a senha', value= None)
-            validar_login = st.button('Login')
             lista_user = ['jardisson', 'melias', 'tiadmin']
             senha_p = 'Dinizfinan'
-            if validar_login:
-                if user in lista_user and senha in senha_p:
 
-                    new_inf = st.text_input('Insira o CPF do Influencer', value= None)
-                    col1, col2 = st.columns(2)
-                    incluir_influ = col1.button('Incluir influencer')
-                    excluir_influ = col2.button('Excluir influencer')
+            new_inf = st.text_input('Insira o CPF do Influencer', value= None)
+            col1, col2 = st.columns(2)
+            incluir_influ = col1.button('Incluir influencer')
+            excluir_influ = col2.button('Excluir influencer')
 
-                    if incluir_influ :
-                        if new_inf == None:
-                            st.warning('Insira um CPF')
-                        elif validar_cpf(new_inf) == False:
-                            st.warning('CPF INVALDIDO')
-                        else:   
-                            print(new_inf)               
-                            insert_cpf = query.insert_cpf(new_inf)
-                            if insert_cpf == True:                            
-                                st.cache_data.clear()
-                                data = consulta_compras()
-                                st.warning('Influencer cadastrado')
-                                influencer = data['CLIENTE'].unique().tolist()
-                                st.rerun()  
-                            else:        
-                                st.warning(insert_cpf)                  
+            #INCLUIR INFLUENCER
+            if incluir_influ :
+                if (user not in lista_user) or (senha not in senha_p):
+                    st.warning('insira um usuário e senha válidos')
+                elif new_inf == None:
+                    st.warning('Insira um CPF')
+                elif validar_cpf(new_inf) == False:
+                    st.warning('CPF INVALDIDO')
+                else:   
+                    print(new_inf)               
+                    insert_cpf = query.insert_cpf(new_inf)
+                    if insert_cpf == True:                            
+                        st.cache_data.clear()
+                        data = consulta_compras()
+                        st.warning('Influencer cadastrado')
+                        influencer = data['CLIENTE'].unique().tolist()
+                        st.rerun()  
+                    else:        
+                        st.warning(insert_cpf)                  
+                
+            if excluir_influ:
+                if user not in lista_user or senha not in senha_p:
+                    st.warning('insira um usuário e senha válidos')
+                elif new_inf == None:
+                    st.warning('Insira um CPF')
+                else: 
+                    query.delete_cpf(new_inf) 
+                    if query.delete_cpf(new_inf)  == True:                                             
+                        st.cache_data.clear()
+                        consulta_compras()   
+                        st.warning('Influencer excluido')
                         
-                    if excluir_influ:
-                        if new_inf == None:
-                            st.warning('Insira um CPF')
-                        else: 
-                            query.delete_cpf(new_inf) 
-                            if query.delete_cpf(new_inf)  == True:                                             
-                                st.cache_data.clear()
-                                consulta_compras()   
-                                st.warning('Influencer excluido')
-                                
-                                st.rerun()
-                            else:
-                                st.warning(query.delete_cpf(new_inf) ) 
+                        st.rerun()
+                    else:
+                        st.warning(query.delete_cpf(new_inf) ) 
+    
+            # INCLUINDO NOVO CONTRATO
+
+            contratos = consulta_contratos()
+            contratos_list = contratos['Contrato'].tolist()
+
+            influ = st.selectbox('Selecione os Influencers', influencer, index=None, placeholder='Selecione o influencer')
+            number = st.number_input('Insira um valor', value=0, placeholder='Insira um valor...', step = 1000)
+            contratos_list_numeros = [int(contrato) for contrato in contratos_list]
+            valor_maximo = max(contratos_list_numeros)
+
+            id_contrato = valor_maximo + 1
+            user = st.text_input('Insira seu nome', value= None)
             
-                    # INCLUINDO NOVO CONTRATO
+            first_date = datetime.date(2023, 1, 1)
+            las_date = datetime.date(2050, 12, 31)
 
-                    contratos = consulta_contratos()
-                    contratos_list = contratos['Contrato'].tolist()
+            d = st.date_input(
+                "Selecione o periodo",
+                (first_date, datetime.date(2023, 1, 1)),
+                first_date,
+                las_date,
+                format="DD.MM.YYYY",           
+            )
+            agree = st.checkbox('Conferi os dados') 
 
-                    influ = st.selectbox('Selecione os Influencers', influencer, index=None, placeholder='Selecione o influencer')
-                    number = st.number_input('Insira um valor', value=0, placeholder='Insira um valor...', step = 1000)
-                    contratos_list_numeros = [int(contrato) for contrato in contratos_list]
-                    valor_maximo = max(contratos_list_numeros)
+            if st.button('Incluir contrato', key= 4):
+                if user not in lista_user or senha not in senha_p:
+                    st.warning('insira um usuário e senha válidos')
+                elif number == None:
+                    st.warning('Por favor, insira um valor.')
 
-                    id_contrato = valor_maximo + 1
-                    user = st.text_input('Insira seu nome', value= None)
-                    
-                    first_date = datetime.date(2023, 1, 1)
-                    las_date = datetime.date(2050, 12, 31)
+                elif user == "":
+                    st.warning('Por favor, insira seu nome.')
 
-                    d = st.date_input(
-                        "Selecione o periodo",
-                        (first_date, datetime.date(2023, 1, 1)),
-                        first_date,
-                        las_date,
-                        format="DD.MM.YYYY",           
-                    )
-                    agree = st.checkbox('Conferi os dados') 
+                elif user.isnumeric():
+                    st.warning('Por favor, insira seu nome.')
 
-                    if st.button('Incluir contrato', key= 4):
+                elif influ == None:
+                    st.warning('Por favor, selecione um influencer.')
+                
+                elif id_contrato in contratos_list:
+                    st.warning('Numero de contrato ja utilizado')
 
-                        if number == None:
-                            st.warning('Por favor, insira um valor.')
+                else:
+                    if agree:                    
+                        data_hora_atual = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S') 
+                        data_inicial = d[0].strftime('%Y-%m-%d')
+                        data_final = d[1].strftime('%Y-%m-%d')                                           
+                        perm = (id_contrato, influ, user, data_hora_atual, data_inicial, data_final, round(number,2) )                          
+                        insert_data = query.insert_data (perm)  
+                        if insert_data == True:
+                            st.warning(f"Valor de  {number} para {influ} cadastrado!")
+                            consulta_contratos.clear()
 
-                        elif user == "":
-                            st.warning('Por favor, insira seu nome.')
-
-                        elif user.isnumeric():
-                            st.warning('Por favor, insira seu nome.')
-
-                        elif influ == None:
-                            st.warning('Por favor, selecione um influencer.')
+                            contratos = consulta_contratos()
+                            contratos_list = contratos['Contrato'].tolist()
                         
-                        elif id_contrato in contratos_list:
-                            st.warning('Numero de contrato ja utilizado')
-
-                        else:
-                            if agree:                    
-                                data_hora_atual = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S') 
-                                data_inicial = d[0].strftime('%Y-%m-%d')
-                                data_final = d[1].strftime('%Y-%m-%d')                                           
-                                perm = (id_contrato, influ, user, data_hora_atual, data_inicial, data_final, round(number,2) )                          
-                                insert_data = query.insert_data (perm)  
-                                if insert_data == True:
-                                    st.warning(f"Valor de  {number} para {influ} cadastrado!")
-                                    consulta_contratos.clear()
-
-                                    contratos = consulta_contratos()
-                                    contratos_list = contratos['Contrato'].tolist()
-                                
-                                else: 
-                                    st.warning(insert_data)
-                            else:
-                                st.warning('Marque a opção "Conferi os dados"')
+                        else: 
+                            st.warning(insert_data)
+                    else:
+                        st.warning('Marque a opção "Conferi os dados"')
+            
+            #DELETAR CONTRATO
+            del_contrato = st.selectbox('Selecione um contrato para excluir',contratos_list, index=None, placeholder='Selecione um contrato')
+            if del_contrato is not None :
+                agree_del = st.checkbox("Deletar contrato: {del_contrato}".format(del_contrato=del_contrato))            
+                if agree_del:
                     
-                    #DELETAR CONTRATO
-                    del_contrato = st.selectbox('Selecione um contrato para excluir',contratos_list, index=None, placeholder='Selecione um contrato')
-                    if del_contrato is not None :
-                        agree_del = st.checkbox("Deletar contrato: {del_contrato}".format(del_contrato=del_contrato))            
-                        if agree_del:
-                            
-                            ct_filtred = contratos[contratos['Contrato']== del_contrato]
-                            inf_del = ct_filtred.iloc[0]['Influencer']
-                            contrato_del = ct_filtred.iloc[0]['Contrato']
-                            valor_del = ct_filtred.iloc[0]['Valor Permuta']
+                    ct_filtred = contratos[contratos['Contrato']== del_contrato]
+                    inf_del = ct_filtred.iloc[0]['Influencer']
+                    contrato_del = ct_filtred.iloc[0]['Contrato']
+                    valor_del = ct_filtred.iloc[0]['Valor Permuta']
 
-                            st.warning('Atenção! O contrato {contrato_del} de {inf_del} no valor {valor_del} irá ser deletado'.format(
-                                contrato_del=contrato_del,
-                                inf_del=inf_del,
-                                valor_del=valor_del
-                                )
-                            )    
+                    st.warning('Atenção! O contrato {contrato_del} de {inf_del} no valor {valor_del} irá ser deletado'.format(
+                        contrato_del=contrato_del,
+                        inf_del=inf_del,
+                        valor_del=valor_del
+                        )
+                    )    
 
-                    if st.button('Deletar contrato', key= 5):     
-                                
-                        if del_contrato is None: 
-                            st.warning('Selecione um contrato')
-                        elif agree_del == False:                                                          
-                            st.warning('Marque a opção para deletar o contrato')
-                        else:
-                            delete_contrato = query.delete_data(del_contrato)
-                            if delete_contrato == True:
-                                st.warning('Contrato excluído com sucesso')
-                                consulta_contratos.clear()
-                                contratos = consulta_contratos()
-                                contratos_list = contratos['Contrato'].tolist()                        
-                            else:
-                                st.warning(delete_contrato)
+            if st.button('Deletar contrato', key= 5):     
+                if user not in lista_user or senha not in senha_p:
+                    st.warning('insira um usuário e senha válidos')                        
+                elif del_contrato is None: 
+                    st.warning('Selecione um contrato')
+                elif agree_del == False:                                                          
+                    st.warning('Marque a opção para deletar o contrato')
+                else:
+                    delete_contrato = query.delete_data(del_contrato)
+                    if delete_contrato == True:
+                        st.warning('Contrato excluído com sucesso')
+                        consulta_contratos.clear()
+                        contratos = consulta_contratos()
+                        contratos_list = contratos['Contrato'].tolist()                        
+                    else:
+                        st.warning(delete_contrato)
 
         #VISUALIZAÇÃO TABELAS            
         task = st.selectbox('Influencer', ['Contratos']+['Todos'] + influencer, index=None,placeholder='Selecione o influencer')      
@@ -309,7 +313,7 @@ def run():
                     ult_data_contrato = credito_permuta['Data Inicio'].min()
                     
                     data = data[data['Data_venda'] >= ult_data_contrato]
-                    total_compra = int(data.groupby('CLIENTE').agg({'TOTAL':'sum'}).values)               
+                    total_compra = data.groupby('CLIENTE').agg({'TOTAL': 'sum'}).to_dict().get('TOTAL', {}).get('CLIENTE', 0)           
                     credito_ativo = int(credito_permuta.groupby('Influencer').agg({'Valor Permuta':'sum'}).values)
 
                     col1, col2, col3  = st.columns(3)
