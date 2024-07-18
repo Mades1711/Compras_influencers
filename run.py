@@ -2,7 +2,10 @@ import streamlit as st
 import query
 import pandas as pd
 import datetime
+import locale
 
+# Configurar o locale para o formato desejado (pt_BR para português do Brasil)
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 css = """
 <style>
@@ -106,12 +109,16 @@ def run():
     st.title("Relação compras de Influencer")
        
     data = consulta_compras()
+    atualizar = st.button('Atualizar dados')
+    if atualizar:
+        st.cache_data.clear()
     if data is None:
         st.error('No momento nao foi possivel conectar ao banco de dados, favor tente novamente mais tarde')
     else:
         influencer = data['CLIENTE'].unique().tolist()
             
         with st.sidebar:
+            
             user = st.text_input('Insira seu usuário', value= None)
             senha = st.text_input('Insira a senha', value= None)
             lista_user = ['jardisson', 'melias', 'tiadmin']
@@ -143,7 +150,7 @@ def run():
                         st.warning(insert_cpf)                  
                 
             if excluir_influ:
-                if user not in lista_user or senha not in senha_p:
+                if (user not in lista_user) or (senha not in senha_p):
                     st.warning('insira um usuário e senha válidos')
                 elif new_inf == None:
                     st.warning('Insira um CPF')
@@ -169,7 +176,7 @@ def run():
             valor_maximo = max(contratos_list_numeros)
 
             id_contrato = valor_maximo + 1
-            user = st.text_input('Insira seu nome', value= None)
+            
             
             first_date = datetime.date(2023, 1, 1)
             las_date = datetime.date(2050, 12, 31)
@@ -184,7 +191,7 @@ def run():
             agree = st.checkbox('Conferi os dados') 
 
             if st.button('Incluir contrato', key= 4):
-                if user not in lista_user or senha not in senha_p:
+                if (user not in lista_user) or (senha not in senha_p):
                     st.warning('insira um usuário e senha válidos')
                 elif number == None:
                     st.warning('Por favor, insira um valor.')
@@ -239,7 +246,7 @@ def run():
                     )    
 
             if st.button('Deletar contrato', key= 5):     
-                if user not in lista_user or senha not in senha_p:
+                if (user not in lista_user) or (senha not in senha_p):
                     st.warning('insira um usuário e senha válidos')                        
                 elif del_contrato is None: 
                     st.warning('Selecione um contrato')
@@ -256,48 +263,60 @@ def run():
                         st.warning(delete_contrato)
 
         #VISUALIZAÇÃO TABELAS            
-        task = st.selectbox('Influencer', ['Contratos']+['Todos'] + influencer, index=None,placeholder='Selecione o influencer')      
-
+        task = st.selectbox('Influencer', ['Contratos']+['Compras'] + influencer, index=None,placeholder='Selecione uma opção')      
+        
         if data is None:
             st.error('No momento nao foi possivel conectar ao banco de dados, favor tente novamente mais tarde')
             if st.button("Atualizar dados"):
                 st.cache_data.clear()
         else:
             
-            if task == 'Todos':
+            if task == 'Compras':
+                    data = data.style.format({
+                        "TOTAL": lambda x : 'R$ {:,.2f}'.format(x),
+                        "Nº Venda": lambda x : '{:,.0f}'.format(x),
+                        "OS ": lambda x : '{:,.0f}'.format(x),
+                        "Data_venda" : lambda x: x.strftime('%d/%m/%Y')
+                        },
+                        thousands='.',
+                        decimal=',',
+                    )
                     st.dataframe(
                         data, 
                         hide_index= True,
-                        width = 1300,
+                        width = 1500,
                         height = 300,
                         column_config = {
-                            "Data_venda": st.column_config.DatetimeColumn(
-                                "Data Venda",
-                                format="DD/MM/YYYY",
-                            ),
-                            "OBSERV": 'OBSERVAÇÃO'     
+                            "Data_venda": "Data Venda",                                
+                            "OBSERV": 'OBSERVAÇÃO',                              
                         }
                         
                         )
 
             elif task in influencer:
                 col1, col2, col3 = st.columns(3)
-                valid = col1.selectbox('Contratos', ['Todos']+['Contratos ativos'],placeholder='Selecione o influencer')
+                valid = col1.selectbox('Contratos', ['Todas compras']+['Contratos ativos'],placeholder='Selecione o influencer')
                 credito_permuta = contratos[contratos['Influencer']==task]
                 
                 data = data[data['CLIENTE']==task]
-                if valid == 'Todos':
+                if valid == 'Todas compras':
+                    data = data.style.format({
+                        "TOTAL": lambda x : 'R$ {:,.2f}'.format(x),
+                        "Nº Venda": lambda x : '{:,.0f}'.format(x),
+                        "OS ": lambda x : '{:,.0f}'.format(x),
+                        "Data_venda" : lambda x: x.strftime('%d/%m/%Y')
+                        },
+                        thousands='.',
+                        decimal=',',
+                    )
                     st.dataframe(
                         data, 
                         hide_index= True,
-                        width = 1300,
+                        width = 1500,
                         height = 300,
                         column_config = {
-                            "Data_venda": st.column_config.DatetimeColumn(
-                                "Data Venda",
-                                format="DD/MM/YYYY",
-                            ),
-                            "OBSERV": 'OBSERVAÇÃO'
+                            "Data_venda":  "Data Venda",
+                            "OBSERV": 'OBSERVAÇÃO',
                         }
                         
                         )
@@ -315,48 +334,53 @@ def run():
                     data = data[data['Data_venda'] >= ult_data_contrato]
                     total_compra = data.groupby('CLIENTE').agg({'TOTAL': 'sum'}).to_dict().get('TOTAL', {}).get('CLIENTE', 0)           
                     credito_ativo = int(credito_permuta.groupby('Influencer').agg({'Valor Permuta':'sum'}).values)
+                    cred_res = credito_ativo-total_compra
+
+                    formatted_total_compra = locale.format_string("R$ %.2f", total_compra, grouping=True)
+                    formatted_credito_ativo = locale.format_string("R$ %.2f", credito_ativo, grouping=True)
+                    formatted_cred_res  = locale.format_string("R$ %.2f", cred_res, grouping=True)
 
                     col1, col2, col3  = st.columns(3)
-                    col1.metric(label="Total comprado",value=total_compra)
-                    col2.metric(label="Total credito ativo",value=credito_ativo)
-                    col3.metric(label="Credito restante",value=credito_ativo-total_compra)
-                   
+                    col1.metric(label="Total comprado",value=formatted_total_compra)
+                    col2.metric(label="Total credito ativo",value=formatted_credito_ativo)
+                    col3.metric(label="Credito restante",value=formatted_cred_res)
+                    data = data.style.format({
+                        "Total": lambda x : 'R$ {:,.2f}'.format(x),
+                        "NºVenda": lambda x : '{:,f}'.format(x),
+                        "OS": lambda x : 'R$ {:,.2f}'.format(x),
+                        "Data_venda" : lambda x: x.strftime('%d/%m/%Y')
+                        },
+                        thousands='.',
+                        decimal=',',
+                    )
                     st.dataframe(
                         data, 
                         hide_index= True,
-                        width = 1300,
+                        width = 1500,
                         height = 300,
                         column_config = {
-                            "Data_venda": st.column_config.DatetimeColumn(
-                                "Data Venda",
-                                format="DD/MM/YYYY",
-                            ),
-                            "OBSERV": 'OBSERVAÇÃO'
+                            "OBSERV": 'OBSERVAÇÃO',
                         }
                         
                         )
                 
             elif task == 'Contratos':
                 contratos = consulta_contratos()
+                contratos = contratos.style.format({
+                    "Valor Permuta": lambda x : 'R$ {:,.2f}'.format(x),
+                    "Data Inicio" : lambda x: x.strftime('%d/%m/%Y'),
+                    "Data Final" : lambda x: x.strftime('%d/%m/%Y')
+                    },
+                    thousands='.',
+                    decimal=',',
+                 )
                 st.dataframe(
                     contratos, 
                     hide_index=True,
                     width = 1500,
-                    height = 300,
-                    column_config = {
-                        "Data Inicio": st.column_config.DatetimeColumn(
-                            "Data Inicio",
-                            format="DD/MM/YYYY",
-                        ),
-                        "Data Final": st.column_config.DatetimeColumn(
-                            "Data Final",
-                            format="DD/MM/YYYY",
-                        ),
-                        "OBSERV": 'OBSERVAÇÃO'
-                        }
-                    ) 
-
+                    height = 300
+                )
             else:
-                st.write('Selecione um influencer')
+                st.write('Selecione uma opção')
                 
 run()
