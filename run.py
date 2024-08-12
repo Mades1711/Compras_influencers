@@ -332,8 +332,8 @@ def run():
                     ult_data_contrato = credito_permuta['Data Inicio'].min()
                     
                     data = data[data['Data_venda'] >= ult_data_contrato]
-                    total_compra = data.groupby('CLIENTE').agg({'TOTAL': 'sum'}).to_dict().get('TOTAL', {}).get('CLIENTE', 0)           
-                    credito_ativo = int(credito_permuta.groupby('Influencer').agg({'Valor Permuta':'sum'}).values)
+                    total_compra = data['TOTAL'].sum()         
+                    credito_ativo = credito_permuta['Valor Permuta'].sum()
                     cred_res = credito_ativo-total_compra
 
                     formatted_total_compra = locale.format_string("R$ %.2f", total_compra, grouping=True)
@@ -342,12 +342,12 @@ def run():
 
                     col1, col2, col3  = st.columns(3)
                     col1.metric(label="Total comprado",value=formatted_total_compra)
-                    col2.metric(label="Total credito ativo",value=formatted_credito_ativo)
+                    col2.metric(label="Total credito",value=formatted_credito_ativo)
                     col3.metric(label="Credito restante",value=formatted_cred_res)
                     data = data.style.format({
                         "Total": lambda x : 'R$ {:,.2f}'.format(x),
                         "NºVenda": lambda x : '{:,f}'.format(x),
-                        "OS": lambda x : 'R$ {:,.2f}'.format(x),
+                        "TOTAL": lambda x : 'R$ {:,.2f}'.format(x),
                         "Data_venda" : lambda x: x.strftime('%d/%m/%Y')
                         },
                         thousands='.',
