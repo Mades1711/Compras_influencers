@@ -122,7 +122,7 @@ def run():
             user = st.text_input('Insira seu usuário', value= None)
             senha = st.text_input('Insira a senha', value= None)
             lista_user = ['jardisson', 'melias', 'tiadmin']
-            senha_p = 'Dinizfinan'
+            senha_p = 'Dnz102030'
 
             new_inf = st.text_input('Insira o CPF do Influencer', value= None)
             col1, col2 = st.columns(2)

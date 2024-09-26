@@ -43,7 +43,8 @@ query = """
   WHERE 
     p.CPF IN ({cpf_inf})
     AND o.REPARO = 'F'
-    AND s2.descricao <> 'CORTESIA'
+    AND s2.descricao not like '%CORTESIA%'
+    AND CAST(SUBSTRING(o.OBSERVACAO FROM 1 FOR 320) AS VARCHAR(320)) NOT LIKE '%CORTESIA%'
   GROUP BY 
     e.NOME,
     t.NUMEROTRANSACAO,
