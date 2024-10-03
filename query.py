@@ -67,7 +67,8 @@ query1 = """
     data_inclusao "Data Inclusão",
     data_inicio "Data Inicio",
     data_final "Data Final",
-    valor "Valor Permuta"
+    valor "Valor Permuta",
+    ifnull(observacao,'') "Observação"
   from influencer.contratos
 """
 
@@ -140,8 +141,8 @@ def insert_data(perm):
       conn = Connect_mysql()
       cursor = conn.cursor()
       sql_insert_query = """
-        INSERT INTO contratos (id_contrato, nome_influencer, user, data_inclusao, data_inicio, data_final, valor)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO contratos (id_contrato, nome_influencer, user, data_inclusao, data_inicio, data_final, valor, observacao)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
       """
       valores = perm
       cursor.execute(sql_insert_query, valores)
@@ -222,5 +223,27 @@ def delete_cpf(new_inf):
         cursor.close()
         conn.close()
         
+def extrato_tot(contrato,data):
+  extrato_contratos = contrato.copy()
+  extrato_contratos = extrato_contratos[['Contrato','Observação','Influencer','Data Inicio','Valor Permuta']]
+  extrato_contratos = extrato_contratos.rename(columns={
+      'Data Inicio': 'Data',
+      'Valor Permuta': 'Valor',
+      'Contrato' : 'Documento'
+  })
+  extrato_contratos['Tipo'] = 'Permuta'
+  extrato_compras = data
+  extrato_compras = extrato_compras[['Nº Venda', 'OBSERV','CLIENTE','Data_venda','TOTAL']]
+  extrato_compras['TOTAL'] = extrato_compras['TOTAL']*-1
+  extrato_compras = extrato_compras.rename(columns={
+      'CLIENTE' : 'Influencer',
+      'Data_venda' : 'Data',
+      'TOTAL' : 'Valor',
+      'Nº Venda': 'Documento',
+      'OBSERV': 'Observação'
+  })
+  extrato_compras['Tipo'] = 'Compra'
+  extrato = pd.concat([extrato_compras,extrato_contratos], ignore_index=True)
+  extrato = extrato[['Tipo','Documento','Observação','Influencer','Data','Valor']]
+  return extrato
 
-             

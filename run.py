@@ -108,8 +108,13 @@ def run():
     apply_css(css) 
     st.title("Relação compras de Influencer")
        
-    data = consulta_compras()
+    data = consulta_compras().sort_values(by='Data_venda', ascending= True)
+    contratos = consulta_contratos()
+    
+    extrato_ = query.extrato_tot(contratos, data)
+
     atualizar = st.button('Atualizar dados')
+
     if atualizar:
         st.cache_data.clear()
     if data is None:
@@ -167,11 +172,12 @@ def run():
     
             # INCLUINDO NOVO CONTRATO
 
-            contratos = consulta_contratos()
+            
             contratos_list = contratos['Contrato'].tolist()
 
             influ = st.selectbox('Selecione os Influencers', influencer, index=None, placeholder='Selecione o influencer')
             number = st.number_input('Insira um valor', value=0, placeholder='Insira um valor...', step = 1000)
+            obs = st.text_input('Insira uma observação', value= None, placeholder='Insira uma observação...')
             contratos_list_numeros = [int(contrato) for contrato in contratos_list]
             valor_maximo = max(contratos_list_numeros)
 
@@ -213,7 +219,7 @@ def run():
                         data_hora_atual = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S') 
                         data_inicial = d[0].strftime('%Y-%m-%d')
                         data_final = d[1].strftime('%Y-%m-%d')                                           
-                        perm = (id_contrato, influ, user, data_hora_atual, data_inicial, data_final, round(number,2) )                          
+                        perm = (id_contrato, influ, user, data_hora_atual, data_inicial, data_final, round(number,2),obs)                          
                         insert_data = query.insert_data (perm)  
                         if insert_data == True:
                             st.warning(f"Valor de  {number} para {influ} cadastrado!")
@@ -295,11 +301,11 @@ def run():
 
             elif task in influencer:
                 col1, col2, col3 = st.columns(3)
-                valid = col1.selectbox('Contratos', ['Todas compras']+['Contratos ativos'],placeholder='Selecione o influencer')
+                valid = col1.selectbox('Contratos', ['Todas compras']+['Histórico'],placeholder='Selecione o influencer')
                 credito_permuta = contratos[contratos['Influencer']==task]
                 
                 data = data[data['CLIENTE']==task]
-                if valid == 'Todas compras':
+                if valid == 'Todas compras':                   
                     data = data.style.format({
                         "TOTAL": lambda x : 'R$ {:,.2f}'.format(x),
                         "Nº Venda": lambda x : '{:,.0f}'.format(x),
@@ -321,48 +327,36 @@ def run():
                         
                         )
 
-                elif  valid == 'Contratos ativos' and credito_permuta.empty == True:
+                elif  valid == 'Histórico' and credito_permuta.empty == True:
                     st.warning('Sem contratos ativos')
 
                 else:           
-                    data['Data_venda'] = pd.to_datetime(data['Data_venda'])
-                      
-                    hoje =  pd.to_datetime(datetime.datetime.now().date())
-                    credito_permuta = credito_permuta[credito_permuta['Data Final']>= hoje]
-                    ult_data_contrato = credito_permuta['Data Inicio'].min()
+                    extrato_ = extrato_[extrato_['Influencer']== task ].sort_values(by = 'Data', ascending= True)
                     
-                    data = data[data['Data_venda'] >= ult_data_contrato]
-                    total_compra = data['TOTAL'].sum()         
-                    credito_ativo = credito_permuta['Valor Permuta'].sum()
-                    cred_res = credito_ativo-total_compra
+                    cred_res = extrato_['Valor'].sum()
 
-                    formatted_total_compra = locale.format_string("R$ %.2f", total_compra, grouping=True)
-                    formatted_credito_ativo = locale.format_string("R$ %.2f", credito_ativo, grouping=True)
                     formatted_cred_res  = locale.format_string("R$ %.2f", cred_res, grouping=True)
-
                     col1, col2, col3  = st.columns(3)
-                    col1.metric(label="Total comprado",value=formatted_total_compra)
-                    col2.metric(label="Total credito",value=formatted_credito_ativo)
                     col3.metric(label="Credito restante",value=formatted_cred_res)
-                    data = data.style.format({
-                        "Total": lambda x : 'R$ {:,.2f}'.format(x),
-                        "NºVenda": lambda x : '{:,f}'.format(x),
-                        "TOTAL": lambda x : 'R$ {:,.2f}'.format(x),
-                        "Data_venda" : lambda x: x.strftime('%d/%m/%Y')
+
+                    extrato_ = extrato_.style.format({
+                        "Documento": lambda x : '{:}'.format(x),
+                        "Valor": lambda x : 'R$ {:,.2f}'.format(x),
+                        "Data" : lambda x: x.strftime('%d/%m/%Y')
                         },
                         thousands='.',
                         decimal=',',
                     )
                     st.dataframe(
-                        data, 
+                        extrato_, 
                         hide_index= True,
                         width = 1500,
                         height = 300,
                         column_config = {
                             "OBSERV": 'OBSERVAÇÃO',
-                        }
-                        
-                        )
+                        }                       
+                    )
+
                 
             elif task == 'Contratos':
                 contratos = consulta_contratos()
@@ -383,4 +377,6 @@ def run():
             else:
                 st.write('Selecione uma opção')
                 
+
+
 run()
