@@ -24,9 +24,11 @@ query = """
     SUM(
       CASE
         WHEN s2.descricao = 'EXAGERADO' THEN OP.VALORUNITARIO 
+        WHEN f.TOTAL IS NOT NULL THEN op.VALORORIGINAL - f.TOTAL 
         ELSE op.VALORORIGINAL
       END
     ) AS TOTAL
+
   FROM ORDEMSERVICOCAIXA o 
   JOIN TRANSACAO t 
     ON (t.COD_TRANSACAO = o.COD_TRANSACAO AND t.COD_TRANSACAOORIGEM IS NULL)
@@ -38,8 +40,10 @@ query = """
     ON (op.COD_ORDEMSERVICOCAIXA  = o.COD_ORDEMSERVICOCAIXA)
   LEFT JOIN SAIDA s 
     ON (s.COD_SAIDA = t.COD_TRANSACAO)
-  LEFT JOIN  SAIDAMOTIVO s2 
+  LEFT JOIN  SAIDAMOTIVO s2
     ON (s2.COD_SAIDAMOTIVO = s.COD_SAIDAMOTIVO)
+  LEFT JOIN finlancamento f
+  	ON (f.cod_faturatransacao = t.cod_faturatransacao)
   WHERE 
     p.CPF IN ({cpf_inf})
     AND o.REPARO = 'F'
